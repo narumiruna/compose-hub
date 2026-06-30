@@ -1,0 +1,6 @@
+ingress:
+  - hostname: kestrel.narumi.dev
+    service: http://host.docker.internal:3301
+  - hostname: memos.narumi.dev
+    service: http://host.docker.internal:5230
+  - service: http_status:404
