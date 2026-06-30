@@ -15,11 +15,8 @@ services:
       MB_DB_USER: ${POSTGRES_USER:-metabase}
       MB_DB_PASS: ${POSTGRES_PASSWORD:-mysecretpassword}
       MB_DB_HOST: postgres
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "-I", "http://localhost:3000/api/health"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
+    restart: unless-stopped
+
   postgres:
     image: postgres:16
     container_name: postgres
@@ -29,3 +26,4 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mysecretpassword}
     volumes:
       - ./pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
