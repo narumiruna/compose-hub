@@ -1,0 +1,13 @@
+services:
+  proxy:
+    build:
+      context: .
+      args:
+        PUID: "${PUID:-1000}"
+    restart: unless-stopped
+    environment:
+      AUTOSSH_GATETIME: "0"
+    ports:
+      - "22000:22000"
+    volumes:
+      - "${HOME}/.ssh:/home/proxy/.ssh:ro"
