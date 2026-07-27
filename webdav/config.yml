@@ -6,6 +6,7 @@ debug: false
 behindProxy: false
 directory: /data
 permissions: CRUD
+auth: true
 
 users:
   - username: "{env}WEBDAV_USERNAME"
