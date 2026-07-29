@@ -7,4 +7,6 @@ ingress:
     service: http://host.docker.internal:3002
   - hostname: webdav.narumi.dev
     service: http://host.docker.internal:6065
+  - hostname: hermes.narumi.dev
+    service: http://host.docker.internal:9119
   - service: http_status:404
