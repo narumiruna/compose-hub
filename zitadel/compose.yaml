@@ -2,7 +2,7 @@ name: zitadel
 
 services:
   proxy:
-    image: ${TRAEFIK_IMAGE}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.7}
     restart: unless-stopped
     command:
       - --providers.docker=true
@@ -10,14 +10,14 @@ services:
       - --providers.docker.network=zitadel
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --api.dashboard=${TRAEFIK_DASHBOARD_ENABLED}
+      - --api.dashboard=${TRAEFIK_DASHBOARD_ENABLED:-false}
       - --api.insecure=false
       - --ping=true
       - --ping.entrypoint=web
-      - --log.level=${TRAEFIK_LOG_LEVEL}
-      - --accesslog=${TRAEFIK_ACCESSLOG_ENABLED}
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+      - --accesslog=${TRAEFIK_ACCESSLOG_ENABLED:-true}
     ports:
-      - ${PROXY_HTTP_PUBLISHED_PORT}:80
+      - ${PROXY_HTTP_PUBLISHED_PORT:-8082}:80
     networks:
       - zitadel
     volumes:
@@ -29,43 +29,43 @@ services:
         condition: service_healthy
 
   zitadel-api:
-    image: ghcr.io/zitadel/zitadel:${ZITADEL_VERSION}
+    image: ghcr.io/zitadel/zitadel:${ZITADEL_VERSION:-v4.16.0}
     restart: unless-stopped
     user: "0"
-    command: start-from-init --masterkey "${ZITADEL_MASTERKEY}"
+    command: start-from-init --masterkey "${ZITADEL_MASTERKEY:-MasterkeyNeedsToHave32Characters}"
     environment:
       ZITADEL_PORT: 8080
-      ZITADEL_EXTERNALDOMAIN: ${ZITADEL_DOMAIN}
-      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNALPORT}
-      ZITADEL_EXTERNALSECURE: ${ZITADEL_EXTERNALSECURE}
+      ZITADEL_EXTERNALDOMAIN: ${ZITADEL_DOMAIN:-localhost}
+      ZITADEL_EXTERNALPORT: ${ZITADEL_EXTERNALPORT:-8082}
+      ZITADEL_EXTERNALSECURE: ${ZITADEL_EXTERNALSECURE:-false}
       ZITADEL_TLS_ENABLED: false
 
-      ZITADEL_DATABASE_POSTGRES_DSN: ${ZITADEL_DATABASE_POSTGRES_DSN}
+      ZITADEL_DATABASE_POSTGRES_DSN: postgresql://${POSTGRES_ADMIN_USER:-postgres}:${POSTGRES_ADMIN_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-zitadel}?sslmode=disable
 
       ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: false
       ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
       ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Automatically Initialized IAM_LOGIN_CLIENT
-      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION}
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${LOGIN_CLIENT_PAT_EXPIRATION:-2099-01-01T00:00:00Z}
 
       ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: true
-      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/
-      ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/login?authRequest=
-      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/logout?post_logout_redirect=
-      ZITADEL_SAML_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME}://${ZITADEL_DOMAIN}:${ZITADEL_EXTERNALPORT}/ui/v2/login/login?samlRequest=
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: ${ZITADEL_PUBLIC_SCHEME:-http}://${ZITADEL_DOMAIN:-localhost}:${ZITADEL_EXTERNALPORT:-8082}/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME:-http}://${ZITADEL_DOMAIN:-localhost}:${ZITADEL_EXTERNALPORT:-8082}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: ${ZITADEL_PUBLIC_SCHEME:-http}://${ZITADEL_DOMAIN:-localhost}:${ZITADEL_EXTERNALPORT:-8082}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_SAML_DEFAULTLOGINURLV2: ${ZITADEL_PUBLIC_SCHEME:-http}://${ZITADEL_DOMAIN:-localhost}:${ZITADEL_EXTERNALPORT:-8082}/ui/v2/login/login?samlRequest=
 
-      ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED}
+      ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: ${ZITADEL_ACCESS_LOG_STDOUT_ENABLED:-true}
 
-      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE}
-      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT}
-      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE}
-      ZITADEL_INSTRUMENTATION_SERVICENAME: ${ZITADEL_INSTRUMENTATION_SERVICENAME}
+      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_TYPE:-none}
+      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_ENDPOINT:-otel-collector:4317}
+      ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE: ${ZITADEL_INSTRUMENTATION_TRACE_EXPORTER_INSECURE:-true}
+      ZITADEL_INSTRUMENTATION_SERVICENAME: ${ZITADEL_INSTRUMENTATION_SERVICENAME:-zitadel-api}
 
-      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: ${ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED}
-      ZITADEL_CACHES_CONNECTORS_REDIS_URL: ${ZITADEL_CACHES_CONNECTORS_REDIS_URL}
-      ZITADEL_CACHES_INSTANCE_CONNECTOR: ${ZITADEL_CACHES_INSTANCE_CONNECTOR}
-      ZITADEL_CACHES_MILESTONES_CONNECTOR: ${ZITADEL_CACHES_MILESTONES_CONNECTOR}
-      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: ${ZITADEL_CACHES_ORGANIZATION_CONNECTOR}
+      ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED: ${ZITADEL_CACHES_CONNECTORS_REDIS_ENABLED:-false}
+      ZITADEL_CACHES_CONNECTORS_REDIS_URL: ${ZITADEL_CACHES_CONNECTORS_REDIS_URL:-redis://redis:6379/0}
+      ZITADEL_CACHES_INSTANCE_CONNECTOR: ${ZITADEL_CACHES_INSTANCE_CONNECTOR:-}
+      ZITADEL_CACHES_MILESTONES_CONNECTOR: ${ZITADEL_CACHES_MILESTONES_CONNECTOR:-}
+      ZITADEL_CACHES_ORGANIZATION_CONNECTOR: ${ZITADEL_CACHES_ORGANIZATION_CONNECTOR:-}
 
     healthcheck:
       test:
@@ -94,43 +94,43 @@ services:
       - traefik.http.middlewares.zitadel-strip-api.stripprefix.forceSlash=false
 
       # No dedicated gRPC router is needed because the catch-all router uses h2c.
-      - traefik.http.routers.zitadel-api-alias-web.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.zitadel-api-alias-web.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && PathPrefix(`/api`)
       - traefik.http.routers.zitadel-api-alias-web.entrypoints=web
       - traefik.http.routers.zitadel-api-alias-web.middlewares=zitadel-strip-api
       - traefik.http.routers.zitadel-api-alias-web.service=zitadel-api
       - traefik.http.routers.zitadel-api-alias-web.priority=200
 
-      - traefik.http.routers.zitadel-api-alias-websecure.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.zitadel-api-alias-websecure.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && PathPrefix(`/api`)
       - traefik.http.routers.zitadel-api-alias-websecure.entrypoints=websecure
       - traefik.http.routers.zitadel-api-alias-websecure.tls=true
       - traefik.http.routers.zitadel-api-alias-websecure.middlewares=zitadel-strip-api
       - traefik.http.routers.zitadel-api-alias-websecure.service=zitadel-api
       - traefik.http.routers.zitadel-api-alias-websecure.priority=200
 
-      - traefik.http.routers.zitadel-canonical-web.rule=Host(`${ZITADEL_DOMAIN}`) && !PathPrefix(`/ui/v2/login`) && !PathPrefix(`/api`) && !Path(`/`)
+      - traefik.http.routers.zitadel-canonical-web.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && !PathPrefix(`/ui/v2/login`) && !PathPrefix(`/api`) && !Path(`/`)
       - traefik.http.routers.zitadel-canonical-web.entrypoints=web
       - traefik.http.routers.zitadel-canonical-web.service=zitadel-api
       - traefik.http.routers.zitadel-canonical-web.priority=100
 
-      - traefik.http.routers.zitadel-canonical-websecure.rule=Host(`${ZITADEL_DOMAIN}`) && !PathPrefix(`/ui/v2/login`) && !PathPrefix(`/api`) && !Path(`/`)
+      - traefik.http.routers.zitadel-canonical-websecure.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && !PathPrefix(`/ui/v2/login`) && !PathPrefix(`/api`) && !Path(`/`)
       - traefik.http.routers.zitadel-canonical-websecure.entrypoints=websecure
       - traefik.http.routers.zitadel-canonical-websecure.tls=true
       - traefik.http.routers.zitadel-canonical-websecure.service=zitadel-api
       - traefik.http.routers.zitadel-canonical-websecure.priority=100
 
   zitadel-login:
-    image: ghcr.io/zitadel/zitadel-login:${ZITADEL_VERSION}
+    image: ghcr.io/zitadel/zitadel-login:${ZITADEL_VERSION:-v4.16.0}
     restart: unless-stopped
     user: "0"
     environment:
       ZITADEL_API_URL: http://zitadel-api:8080
       NEXT_PUBLIC_BASE_PATH: /ui/v2/login
       ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
-      CUSTOM_REQUEST_HEADERS: Host:${ZITADEL_DOMAIN},X-Forwarded-Proto:${ZITADEL_PUBLIC_SCHEME}
+      CUSTOM_REQUEST_HEADERS: Host:${ZITADEL_DOMAIN:-localhost},X-Forwarded-Proto:${ZITADEL_PUBLIC_SCHEME:-http}
 
-      OTEL_SERVICE_NAME: ${LOGIN_OTEL_SERVICE_NAME}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${LOGIN_OTEL_EXPORTER_OTLP_ENDPOINT}
-      OTEL_EXPORTER_OTLP_PROTOCOL: ${LOGIN_OTEL_EXPORTER_OTLP_PROTOCOL}
+      OTEL_SERVICE_NAME: ${LOGIN_OTEL_SERVICE_NAME:-zitadel-login}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${LOGIN_OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${LOGIN_OTEL_EXPORTER_OTLP_PROTOCOL:-grpc}
     healthcheck:
       test:
         - CMD
@@ -155,41 +155,41 @@ services:
 
       - traefik.http.middlewares.zitadel-root-rewrite.replacepath.path=/ui/v2/login/
 
-      - traefik.http.routers.zitadel-root-web.rule=Host(`${ZITADEL_DOMAIN}`) && Path(`/`)
+      - traefik.http.routers.zitadel-root-web.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && Path(`/`)
       - traefik.http.routers.zitadel-root-web.entrypoints=web
       - traefik.http.routers.zitadel-root-web.middlewares=zitadel-root-rewrite
       - traefik.http.routers.zitadel-root-web.service=zitadel-login
       - traefik.http.routers.zitadel-root-web.priority=400
 
-      - traefik.http.routers.zitadel-root-websecure.rule=Host(`${ZITADEL_DOMAIN}`) && Path(`/`)
+      - traefik.http.routers.zitadel-root-websecure.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && Path(`/`)
       - traefik.http.routers.zitadel-root-websecure.entrypoints=websecure
       - traefik.http.routers.zitadel-root-websecure.tls=true
       - traefik.http.routers.zitadel-root-websecure.middlewares=zitadel-root-rewrite
       - traefik.http.routers.zitadel-root-websecure.service=zitadel-login
       - traefik.http.routers.zitadel-root-websecure.priority=400
 
-      - traefik.http.routers.zitadel-login-web.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/ui/v2/login`)
+      - traefik.http.routers.zitadel-login-web.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && PathPrefix(`/ui/v2/login`)
       - traefik.http.routers.zitadel-login-web.entrypoints=web
       - traefik.http.routers.zitadel-login-web.service=zitadel-login
       - traefik.http.routers.zitadel-login-web.priority=250
 
-      - traefik.http.routers.zitadel-login-websecure.rule=Host(`${ZITADEL_DOMAIN}`) && PathPrefix(`/ui/v2/login`)
+      - traefik.http.routers.zitadel-login-websecure.rule=Host(`${ZITADEL_DOMAIN:-localhost}`) && PathPrefix(`/ui/v2/login`)
       - traefik.http.routers.zitadel-login-websecure.entrypoints=websecure
       - traefik.http.routers.zitadel-login-websecure.tls=true
       - traefik.http.routers.zitadel-login-websecure.service=zitadel-login
       - traefik.http.routers.zitadel-login-websecure.priority=250
 
   postgres:
-    image: ${POSTGRES_IMAGE}
+    image: ${POSTGRES_IMAGE:-postgres:17.10-alpine}
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-zitadel}
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_ADMIN_USER}
+        - pg_isready -d ${POSTGRES_DB:-zitadel} -U ${POSTGRES_ADMIN_USER:-postgres}
       interval: 10s
       timeout: 30s
       retries: 10
@@ -200,7 +200,7 @@ services:
       - zitadel
 
   redis:
-    image: ${REDIS_IMAGE}
+    image: ${REDIS_IMAGE:-redis:7.4.9-alpine}
     restart: unless-stopped
     profiles:
       - cache
@@ -213,7 +213,7 @@ services:
       - zitadel
 
   otel-collector:
-    image: ${OTEL_COLLECTOR_IMAGE}
+    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.156.0}
     restart: unless-stopped
     profiles:
       - observability
