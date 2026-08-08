@@ -2,6 +2,7 @@
 
 ## Contributing
 
+- Keep document concise and clear.
 - Each service directory must include `compose.yaml` and `justfile`.
 - Keep `.env.example` minimal.
 - Use local `data/` directories instead of named Docker volumes.
