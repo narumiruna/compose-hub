@@ -1,5 +1,12 @@
 # Repository Guidelines
 
+## Contributing
+
+- Each service directory must include `compose.yaml` and `justfile`.
+- Keep `.env.example` minimal.
+- Use local `data/` directories instead of named Docker volumes.
+- Ignore `data/` and generated files in `.gitignore`.
+
 ## Avoid Port Conflicts
 
 Before assigning or changing a host port in any `compose.yaml`, check both active listeners and ports reserved by this repository:
