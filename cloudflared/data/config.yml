@@ -1,4 +1,6 @@
 ingress:
+  - hostname: immich.narumi.dev
+    service: http://host.docker.internal:2283
   - hostname: kestrel.narumi.dev
     service: http://host.docker.internal:3301
   - hostname: memos.narumi.dev
