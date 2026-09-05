@@ -7,14 +7,8 @@ ingress:
     service: http://host.docker.internal:5230
   - hostname: langfuse.narumi.dev
     service: http://host.docker.internal:3002
-  - hostname: webdav.narumi.dev
-    service: http://host.docker.internal:6065
-  - hostname: hermes.narumi.dev
-    service: http://host.docker.internal:9119
   - hostname: pocket-id.narumi.dev
     service: http://host.docker.internal:1411
   - hostname: pi-agent.narumi.dev
     service: http://host.docker.internal:3100
-  - hostname: pi.narumi.dev
-    service: http://host.docker.internal:18080
   - service: http_status:404
