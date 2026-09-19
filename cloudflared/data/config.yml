@@ -11,4 +11,6 @@ ingress:
     service: http://host.docker.internal:1411
   - hostname: morsel.narumi.dev
     service: http://host.docker.internal:12647
+  - hostname: otter.narumi.dev
+    service: http://host.docker.internal:17463
   - service: http_status:404
