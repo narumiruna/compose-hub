@@ -13,4 +13,6 @@ ingress:
     service: http://host.docker.internal:12647
   - hostname: otter.narumi.dev
     service: http://host.docker.internal:17463
+  - hostname: fitness.narumi.dev
+    service: http://host.docker.internal:8783
   - service: http_status:404
