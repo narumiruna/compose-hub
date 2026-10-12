@@ -41,6 +41,7 @@ You can also use `docker compose` directly. Keep secrets in `.env`; local servic
 - [Memos](memos/)
 - [Metabase](metabase/)
 - [Pocket ID](pocket-id/)
+- [Stalwart](stalwart/)
 - [Uptime Kuma](uptime-kuma/)
 - [Vaultwarden](vaultwarden/)
 - [WebDAV](webdav/)
