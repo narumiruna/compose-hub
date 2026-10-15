@@ -17,4 +17,6 @@ ingress:
     service: http://host.docker.internal:8783
   - hostname: stalwart.narumi.dev
     service: http://host.docker.internal:8084
+  - hostname: sumire.narumi.dev
+    service: http://host.docker.internal:17465
   - service: http_status:404
