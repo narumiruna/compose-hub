@@ -3,10 +3,6 @@ ingress:
     service: http://host.docker.internal:2283
   - hostname: kestrel.narumi.dev
     service: http://host.docker.internal:3301
-  - hostname: memos.narumi.dev
-    service: http://host.docker.internal:5230
-  - hostname: langfuse.narumi.dev
-    service: http://host.docker.internal:3002
   - hostname: pocket-id.narumi.dev
     service: http://host.docker.internal:1411
   - hostname: morsel.narumi.dev
