@@ -6,5 +6,5 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-    volumes:
-      - ./data:/etc/cloudflared
+    #volumes:
+    #  - ./data:/etc/cloudflared
