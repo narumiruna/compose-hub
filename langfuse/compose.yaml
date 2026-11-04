@@ -133,7 +133,7 @@ services:
       start_period: 1s
 
   redis:
-    image: docker.io/redis:7
+    image: docker.io/redis:8
     restart: always
     # Host port 6380 avoids the existing local Redis listener on 6379.
     command: >
