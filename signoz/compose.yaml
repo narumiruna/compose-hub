@@ -1,0 +1,141 @@
+# Adapted from the official SigNoz Foundry Docker Compose example.
+# See README.md for the source revision and setup instructions.
+name: signoz
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: signoz
+      POSTGRES_USER: signoz
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signoz -d signoz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  clickhouse-keeper:
+    image: clickhouse/clickhouse-keeper:25.12.5
+    restart: unless-stopped
+    entrypoint:
+      - /usr/bin/clickhouse-keeper
+      - --config-file=/etc/clickhouse-keeper/keeper.yaml
+    volumes:
+      - ./data/keeper:/var/lib/clickhouse-keeper
+      - ./config/keeper.yaml:/etc/clickhouse-keeper/keeper.yaml:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-keeper-client", "-h", "localhost", "-p", "9181", "-q", "ls"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  init-clickhouse:
+    image: clickhouse/clickhouse-server:25.12.5
+    restart: on-failure
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        case "$$(uname -m)" in
+          x86_64) arch=amd64 ;;
+          aarch64|arm64) arch=arm64 ;;
+          *) echo "Unsupported architecture" >&2; exit 1 ;;
+        esac
+        wget -q -O /tmp/histogram-quantile.tar.gz "https://github.com/SigNoz/signoz/releases/download/histogram-quantile%2Fv0.0.1/histogram-quantile_linux_$${arch}.tar.gz"
+        tar -xzf /tmp/histogram-quantile.tar.gz -C /tmp
+        install -m 0755 /tmp/histogram-quantile /opt/signoz/user_scripts/histogramQuantile
+    volumes:
+      - ./data/user-scripts:/opt/signoz/user_scripts
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.12.5
+    restart: unless-stopped
+    depends_on:
+      clickhouse-keeper:
+        condition: service_healthy
+      init-clickhouse:
+        condition: service_completed_successfully
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+      CLICKHOUSE_CONFIG: /etc/clickhouse-server/clickhouse.yaml
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+      # Keep scripts outside the data mount so entrypoint chown does not touch a read-only mount.
+      - ./data/user-scripts:/opt/signoz/user_scripts:ro
+      - ./config/clickhouse.yaml:/etc/clickhouse-server/clickhouse.yaml:ro
+      - ./config/functions.yaml:/etc/clickhouse-server/functions.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  migrator:
+    image: &collector-image signoz/signoz-otel-collector:v0.144.15
+    restart: on-failure
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /signoz-otel-collector migrate ready
+        /signoz-otel-collector migrate bootstrap
+        /signoz-otel-collector migrate sync up
+        /signoz-otel-collector migrate async up
+    environment: &collector-environment
+      SIGNOZ_OTEL_COLLECTOR_CLICKHOUSE_DSN: tcp://clickhouse:9000
+      SIGNOZ_OTEL_COLLECTOR_TIMEOUT: 10m
+
+  signoz:
+    image: signoz/signoz:v0.149.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      SIGNOZ_SQLSTORE_PROVIDER: postgres
+      SIGNOZ_SQLSTORE_POSTGRES_DSN: postgres://signoz:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/signoz?sslmode=disable
+      SIGNOZ_TELEMETRYSTORE_PROVIDER: clickhouse
+      SIGNOZ_TELEMETRYSTORE_CLICKHOUSE_DSN: tcp://clickhouse:9000
+    ports:
+      - "127.0.0.1:8085:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  otel-collector:
+    image: *collector-image
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      signoz:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /signoz-otel-collector migrate sync check
+        exec /signoz-otel-collector --config=/etc/otel-collector-config.yaml --manager-config=/etc/opamp-config.yaml --copy-path=/var/tmp/collector-config.yaml
+    environment: *collector-environment
+    ports:
+      - "127.0.0.1:4317:4317" # OTLP gRPC
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+    volumes:
+      - ./config/otel-collector.yaml:/etc/otel-collector-config.yaml:ro
+      - ./config/opamp.yaml:/etc/opamp-config.yaml:ro
