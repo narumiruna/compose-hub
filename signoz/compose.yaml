@@ -20,7 +20,7 @@ services:
       start_period: 30s
 
   clickhouse-keeper:
-    image: clickhouse/clickhouse-keeper:25.12.5
+    image: clickhouse/clickhouse-keeper:26.10.3.7
     restart: unless-stopped
     entrypoint:
       - /usr/bin/clickhouse-keeper
