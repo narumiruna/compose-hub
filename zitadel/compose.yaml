@@ -2,7 +2,7 @@ name: zitadel
 
 services:
   proxy:
-    image: ${TRAEFIK_IMAGE:-traefik:v3.7.7}
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7.17}
     restart: unless-stopped
     command:
       - --providers.docker=true
