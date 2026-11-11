@@ -213,7 +213,7 @@ services:
       - zitadel
 
   otel-collector:
-    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.156.0}
+    image: ${OTEL_COLLECTOR_IMAGE:-otel/opentelemetry-collector-contrib:0.165.0}
     restart: unless-stopped
     profiles:
       - observability
