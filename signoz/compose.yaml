@@ -36,7 +36,7 @@ services:
       start_period: 40s
 
   init-clickhouse:
-    image: clickhouse/clickhouse-server:25.12.5
+    image: clickhouse/clickhouse-server:26.10.3.7
     restart: on-failure
     entrypoint: ["/bin/bash", "-ec"]
     command:
@@ -53,7 +53,7 @@ services:
       - ./data/user-scripts:/opt/signoz/user_scripts
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.12.5
+    image: clickhouse/clickhouse-server:26.10.3.7
     restart: unless-stopped
     depends_on:
       clickhouse-keeper:
